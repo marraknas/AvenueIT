@@ -51,18 +51,21 @@ struct LoginView: View {
                         .shadow(color: Color("AvenueNeonCyan").opacity(0.5), radius: 20, x: 0, y: 0)
 
                     Text("AvenueIT")
-                        .font(.system(size: 30, weight: .bold, design: .rounded))
+                        .font(.system(size: 40, weight: .bold, design: .rounded))
                         .foregroundStyle(Color("AvenueOffWhite"))
                     
                     Text("Your one stop platform to discover events around you!")
                         .font(.subheadline)
                         .foregroundStyle(Color("AvenueOffWhite"))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20)
 
                     Text("Sign in or create your account")
                         .font(.subheadline)
                         .foregroundStyle(Color("AvenueOffWhite").opacity(0.45))
                 }
-                .padding(.bottom, 36)
+                .padding(.bottom, 15)
 
                 VStack(spacing: 18) {
                     HStack(spacing: 12) {
