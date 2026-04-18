@@ -8,43 +8,58 @@
 import SwiftUI
 
 struct DashboardSmallEventCardView: View {
-    @State var event: Event
+    let event: Event
+    
+    private var imagePlaceholder: some View {
+        Rectangle()
+            .fill(Color("AvenueSlate"))
+            .overlay(
+                Image(systemName: "photo")
+                    .foregroundStyle(Color("AvenueOffWhite").opacity(0.2))
+            )
+    }
+    
     var body: some View {
-        VStack(alignment: .leading) {
+        VStack(alignment: .leading, spacing: 8) {
             ZStack(alignment: .bottomLeading) {
+                AsyncImage(url: event.mainImageURL) { phase in
+                    if let image = phase.image {
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } else if phase.error != nil {
+                        imagePlaceholder
+                    } else {
+                        imagePlaceholder
+                            .overlay(ProgressView().tint(Color("AvenueNeonCyan")))
+                    }
+                }
+                .frame(width: 200, height: 140)
+                .clipped()
                 
-                Rectangle()
-                    .fill(Color.avenueSkyBlue)
-                    .frame(width: 200, height: 140)
-                    .overlay(
-                        Image(systemName: "progress.indicator")
-                            .font(.largeTitle)
-                            .foregroundStyle(.avenueOffWhite)
-                    )
-                
-                Text(event.tag)
+                Text(event.displayTag)
                     .font(.caption)
                     .fontWeight(.bold)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(.ultraThinMaterial)
-                    .cornerRadius(8)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
                     .padding(8)
             }
-            .cornerRadius(16)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
             
-            Group {
-                Text(event.title)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(event.name)
                     .font(.subheadline)
                     .fontWeight(.bold)
                     .lineLimit(1)
-                    .frame(width: 200, alignment: .leading)
                 
-                Text(event.date)
+                Text(event.formattedDate)
                     .font(.caption2)
-                    .foregroundColor(.cyan)
+                    .foregroundStyle(Color("AvenueNeonCyan"))
             }
-            .padding(.horizontal, 6)
+            .frame(width: 200, alignment: .leading)
+            .padding(.horizontal, 4)
         }
     }
 }
@@ -52,9 +67,13 @@ struct DashboardSmallEventCardView: View {
 #Preview {
     DashboardSmallEventCardView(event: Event(
         id: "1",
-        title: "Celtics vs. Knicks",
-        date: "Apr 19 • 7:30 PM",
-        venue: "TD Garden",
-        tag: "Sports"
+        name: "Celtics vs. Knicks",
+        url: nil,
+        images: [],
+        dates: EventDates(start: EventDateStart(localDate: "2026-04-19", localTime: "19:30:00", dateTime: nil, dateTBD: false, dateTBA: false, timeTBA: false, noSpecificTime: false), timezone: nil, status: nil),
+        classifications: nil,
+        embedded: nil
     ))
+    .padding()
+    .background(Color("AvenueDeepNavy"))
 }
