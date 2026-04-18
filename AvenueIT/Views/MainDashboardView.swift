@@ -36,9 +36,7 @@ struct MainDashboardView: View {
                 }
                 .tag(2)
             
-            Text("Profile View (TODO)")
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.avenueDeepNavy)
+            ProfileView()
                 .tabItem {
                     Label("Profile", systemImage: "person")
                 }

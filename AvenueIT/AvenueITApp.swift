@@ -20,9 +20,15 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 @main
 struct AvenueITApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    @AppStorage("isLoggedIn") var isLoggedIn = false
+
     var body: some Scene {
         WindowGroup {
-            LoginView()
+            if isLoggedIn {
+                MainDashboardView()
+            } else {
+                LoginView()
+            }
         }
     }
 }

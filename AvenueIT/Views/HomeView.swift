@@ -9,7 +9,7 @@ import SwiftUI
 
 struct HomeView: View {
     @State private var eventsVM = EventsViewModel()
-    @State private var selectedCity: City = .boston
+    @AppStorage("preferredCity") private var selectedCity: City = .boston
     @State private var searchText = ""
     @State private var selectedFilter = "All events"
     let filterOptions = ["All events", "Art", "Sports", "Concert"]

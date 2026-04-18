@@ -13,6 +13,7 @@ struct LoginView: View {
     enum Field {
         case email, password
     }
+    @AppStorage("isLoggedIn") private var isLoggedIn = false
     @State private var email = ""
     @State private var password = ""
     @State private var showingAlert = false
@@ -216,7 +217,7 @@ struct LoginView: View {
                 showingAlert = true
             } else {
                 print("Registration success!")
-                // TODO: go to new view
+                isLoggedIn = true
             }
         }
     }
@@ -229,7 +230,7 @@ struct LoginView: View {
                 showingAlert = true
             } else {
                 print("Login success!")
-                // TODO: go to new view
+                isLoggedIn = true
             }
         }
     }
