@@ -76,6 +76,7 @@ struct HomeView: View {
                     TextField("Search for events", text: $searchText)
                         .submitLabel(.search)
                         .autocorrectionDisabled()
+                        .foregroundStyle(.black)
                     if !searchText.isEmpty {
                         Button { searchText = "" } label: {
                             Image(systemName: "xmark.circle.fill")
@@ -121,8 +122,11 @@ struct HomeView: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             LazyHStack(spacing: 16) {
                                 ForEach(sections.featured) { event in
-                                    DashboardBigEventCardView(event: event)
-                                        .containerRelativeFrame(.horizontal, count: 10, span: 9, spacing: 16)
+                                    Button { } label: {
+                                        DashboardBigEventCardView(event: event)
+                                            .containerRelativeFrame(.horizontal, count: 10, span: 9, spacing: 16)
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                             }
                         }
@@ -136,7 +140,10 @@ struct HomeView: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 16) {
                                 ForEach(sections.thisWeek) { event in
-                                    DashboardSmallEventCardView(event: event)
+                                    Button { } label: {
+                                        DashboardSmallEventCardView(event: event)
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                             }
                         }
@@ -149,12 +156,15 @@ struct HomeView: View {
                             .fontWeight(.bold)
 
                         ForEach(sections.list) { event in
-                            EventListView(event: event)
-                                .task {
-                                    if eventsVM.events.last?.id == event.id && eventsVM.hasMorePages {
-                                        await eventsVM.getData(for: selectedCity)
-                                    }
+                            Button { } label: {
+                                EventListView(event: event)
+                            }
+                            .buttonStyle(.plain)
+                            .task {
+                                if eventsVM.events.last?.id == event.id && eventsVM.hasMorePages {
+                                    await eventsVM.getData(for: selectedCity)
                                 }
+                            }
                             Divider()
                                 .background(Color("AvenueSlate"))
                         }
