@@ -80,6 +80,13 @@ struct Event: Codable, Identifiable {
         return (tag == "Undefined" || tag == nil) ? "Event" : tag!
     }
     
+    var eventDate: Date? {
+        guard let localDate = dates.start.localDate else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.date(from: localDate)
+    }
+
     private var primaryClassification: EventClassification? {
         classifications?.first(where: { $0.primary == true }) ?? classifications?.first
     }

@@ -78,29 +78,44 @@ final class EventsViewModel {
     }
 
     var events: [Event] = []
-    var totalEvents: Int = 0
     var isLoading = false
+    var hasMorePages: Bool { currentPage < totalPages }
 
-    var urlString = "https://app.ticketmaster.com/discovery/v2/events.json?apikey=hKZRlOQinBHsApWAXA2jBFbrxNZkzU6T&locale=*&countryCode=US&size=20&sort=date,asc&city=Boston&stateCode=MA"
+    var urlString = "https://app.ticketmaster.com/discovery/v2/events.json?apikey=hKZRlOQinBHsApWAXA2jBFbrxNZkzU6T&locale=*&countryCode=US&size=50&sort=date,asc&city=Boston&stateCode=MA&page=0"
 
-    func getData(for city: City) async {
-        urlString = "https://app.ticketmaster.com/discovery/v2/events.json?apikey=hKZRlOQinBHsApWAXA2jBFbrxNZkzU6T&locale=*&countryCode=US&size=20&sort=date,asc&city=\(city.cityName)&stateCode=\(city.stateCode)"
+    private var currentPage = 0
+    private var totalPages = 0
+
+    func getData(for city: City, reset: Bool = false) async {
+        if reset {
+            events = []
+            currentPage = 0
+            totalPages = 0
+        } // adding reset so that whenever you go to view it will load
+
+        guard !isLoading else { return }
+
+        urlString = "https://app.ticketmaster.com/discovery/v2/events.json?apikey=hKZRlOQinBHsApWAXA2jBFbrxNZkzU6T&locale=*&countryCode=US&size=50&sort=date,asc&city=\(city.cityName)&stateCode=\(city.stateCode)&page=\(currentPage)"
+
         isLoading = true
         print("We are accessing the url \(urlString)")
         guard let url = URL(string: urlString) else {
             print("ERROR: Could not create URL from \(urlString)")
+            isLoading = false
             return
         }
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
             guard let returned = try? JSONDecoder().decode(Returned.self, from: data) else {
                 print("JSON ERROR: Could not decode the JSON data")
+                isLoading = false
                 return
             }
-            print("JSON returned! \(returned)")
-            events = returned.embedded?.events ?? []
-            totalEvents = returned.page?.totalElements ?? 0
-            print("\(events.count) events loaded, \(totalEvents) total")
+            print("JSON returned!")
+            events = events + (returned.embedded?.events ?? [])
+            totalPages = returned.page?.totalPages ?? 0
+            currentPage += 1
+            print("\(events.count) events loaded, page \(currentPage) of \(totalPages)")
         } catch {
             print("Could not get data from \(urlString)")
         }

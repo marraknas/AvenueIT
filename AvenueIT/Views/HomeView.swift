@@ -27,6 +27,27 @@ struct HomeView: View {
         }
     }
 
+    private var sections: (featured: [Event], thisWeek: [Event], list: [Event]) {
+        let all = displayedEvents
+
+        if !searchText.isEmpty {
+            return ([], [], all)
+        }
+
+        let featured = Array(all.prefix(5)) // top 5
+        let weekFromNow = Calendar.current.date(byAdding: .day, value: 7, to: .now) ?? .now
+        let today = Calendar.current.startOfDay(for: .now)
+        let thisWeek = Array(
+            all.dropFirst(5).filter { event in
+                guard let date = event.eventDate else { return false }
+                return date >= today && date <= weekFromNow
+            }.prefix(7) // top 7
+        )
+        let skipIDs = Set((featured + thisWeek).map { $0.id }) // redundant
+        let list = all.filter { !skipIDs.contains($0.id) }
+        return (featured, thisWeek, list)
+    }
+
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 24) {
@@ -49,18 +70,23 @@ struct HomeView: View {
                     }
                     Spacer()
                 }
-                
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.gray)
                     TextField("Search for events", text: $searchText)
                         .submitLabel(.search)
                         .autocorrectionDisabled()
+                    if !searchText.isEmpty {
+                        Button { searchText = "" } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.gray)
+                        }
+                    }
                 }
                 .padding()
                 .background(Color("AvenueOffWhite"))
                 .cornerRadius(20)
-
+                
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(filterOptions, id: \.self) { filter in
@@ -81,60 +107,83 @@ struct HomeView: View {
                     }
                 }
 
-                if eventsVM.isLoading {
+                if eventsVM.isLoading && eventsVM.events.isEmpty {
                     ProgressView()
                         .tint(Color("AvenueNeonCyan"))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 40)
-                } else if displayedEvents.isEmpty {
-                    Text("No events found in \(selectedCity.cityName).")
-                        .font(.subheadline)
-                        .foregroundStyle(Color("AvenueOffWhite").opacity(0.6))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 40)
                 } else {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        LazyHStack(spacing: 16) {
-                            ForEach(displayedEvents.prefix(5)) { event in
-                                Button {
-                                    // TODO: Navigate to event detail
-                                } label: {
+                    if !sections.featured.isEmpty {
+                        Text("Featured")
+                            .font(.title2)
+                            .fontWeight(.bold)
+
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            LazyHStack(spacing: 16) {
+                                ForEach(sections.featured) { event in
                                     DashboardBigEventCardView(event: event)
                                         .containerRelativeFrame(.horizontal, count: 10, span: 9, spacing: 16)
                                 }
-                                .buttonStyle(.plain)
                             }
                         }
                     }
+                    
+                    if !sections.thisWeek.isEmpty {
+                        Text("Happening This Week")
+                            .font(.title2)
+                            .fontWeight(.bold)
 
-                    Text("Events nearby")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .padding(.top, 8)
-
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 16) {
-                            ForEach(displayedEvents) { event in
-                                Button {
-                                    // TODO: Navigate to event detail
-                                } label: {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 16) {
+                                ForEach(sections.thisWeek) { event in
                                     DashboardSmallEventCardView(event: event)
                                 }
-                                .buttonStyle(.plain)
                             }
                         }
+                    }
+                    
+                    // New list section here
+                    if !sections.list.isEmpty {
+                        Text(searchText.isEmpty ? "All Upcoming Events" : "Results")
+                            .font(.title2)
+                            .fontWeight(.bold)
+
+                        ForEach(sections.list) { event in
+                            EventListView(event: event)
+                                .task {
+                                    if eventsVM.events.last?.id == event.id && eventsVM.hasMorePages {
+                                        await eventsVM.getData(for: selectedCity)
+                                    }
+                                }
+                            Divider()
+                                .background(Color("AvenueSlate"))
+                        }
+
+                        if eventsVM.isLoading {
+                            ProgressView()
+                                .tint(Color("AvenueNeonCyan"))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                        }
+                    } else if !eventsVM.isLoading { // not loading new events
+                        Text("No events found in \(selectedCity.cityName).")
+                            .font(.subheadline)
+                            .foregroundStyle(Color("AvenueOffWhite").opacity(0.6))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 40)
                     }
                 }
             }
             .padding()
             .foregroundStyle(.white)
+            .animation(.easeInOut(duration: 0.25), value: searchText.isEmpty)
         }
         .background(Color("AvenueDeepNavy"))
         .task {
-            await eventsVM.getData(for: selectedCity)
+            await eventsVM.getData(for: selectedCity, reset: true)
         }
-        .onChange(of: selectedCity) { // Need to change to dynamic location
-            Task { await eventsVM.getData(for: selectedCity) }
+        .onChange(of: selectedCity) {
+            Task { await eventsVM.getData(for: selectedCity, reset: true) }
         }
     }
 }
