@@ -12,10 +12,8 @@ struct ProfileView: View {
     // to save data
     @AppStorage("isLoggedIn") private var isLoggedIn = false
     @AppStorage("displayName") private var displayName = ""
-    @AppStorage("preferredCity") private var preferredCity: City = .boston
     @AppStorage("dateOfBirthTimestamp") private var dateOfBirthTimestamp: Double = 0
     @State private var tempName = ""
-    @State private var tempCity: City = .boston
     @State private var tempDOB: Date = Date()
 
     private var email: String {
@@ -24,8 +22,7 @@ struct ProfileView: View {
 
     private var hasChanges: Bool {
         tempName != displayName
-            || tempCity != preferredCity
-            || tempDOB.timeIntervalSince1970 != dateOfBirthTimestamp
+        || tempDOB.timeIntervalSince1970 != dateOfBirthTimestamp
     }
 
     var body: some View {
@@ -70,30 +67,11 @@ struct ProfileView: View {
                             .background(Color("AvenueSlate"))
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Preferred City")
-                            .font(.caption)
-                            .foregroundStyle(Color("AvenueOffWhite").opacity(0.5))
-                        
-                        Picker("City", selection: $tempCity) {
-                            ForEach(City.allCases, id: \.self) { city in
-                                Text(city.rawValue).tag(city)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .tint(Color("AvenueOffWhite"))
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color("AvenueSlate"))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
                 }
                 .padding(.horizontal)
 
                 Button {
                     displayName = tempName
-                    preferredCity = tempCity
                     dateOfBirthTimestamp = tempDOB.timeIntervalSince1970
                 } label: {
                     Text("Save Changes")
@@ -129,10 +107,9 @@ struct ProfileView: View {
         .foregroundStyle(.white)
         .onAppear {
             tempName = displayName
-            tempCity = preferredCity
             tempDOB = dateOfBirthTimestamp != 0
-                ? Date(timeIntervalSince1970: dateOfBirthTimestamp)
-                : Date()
+            ? Date(timeIntervalSince1970: dateOfBirthTimestamp)
+            : Date()
         }
     }
 }

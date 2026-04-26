@@ -11,31 +11,27 @@ struct MainDashboardView: View {
     @State private var selectedScreen = 0
     var body: some View {
         TabView(selection: $selectedScreen) {
-            
-            HomeView()
-                .tabItem {
-                    Label("Home", systemImage: "house.fill")
-                }
-                .tag(0)
-            
-            // TODO: Finish up all the screens so that it can navigate
-            
-            Text("Map View (TODO)")
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.avenueDeepNavy)
+
+            NavigationStack {
+                HomeView()
+            }
+            .tabItem {
+                Label("Home", systemImage: "house.fill")
+            }
+            .tag(0)
+
+            MapView()
                 .tabItem {
                     Label("Map", systemImage: "map")
                 }
                 .tag(1)
 
-            Text("My Events View (TODO)")
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.avenueDeepNavy)
+            MyEventsView()
                 .tabItem {
-                    Label("My Events", systemImage: "ticket")
+                    Label("My Events", systemImage: "bookmark.fill")
                 }
                 .tag(2)
-            
+
             ProfileView()
                 .tabItem {
                     Label("Profile", systemImage: "person")
@@ -45,8 +41,4 @@ struct MainDashboardView: View {
         .tint(Color.avenueNeonCyan)
         .preferredColorScheme(.dark)
     }
-}
-
-#Preview {
-    MainDashboardView()
 }

@@ -6,12 +6,16 @@
 //
 
 import SwiftUI
+import CoreLocation
 
 struct HomeView: View {
     @State private var eventsVM = EventsViewModel()
-    @AppStorage("preferredCity") private var selectedCity: City = .boston
+    @State private var savedEventsVM = SavedEventsViewModel()
+    @Environment(LocationManager.self) private var locationManager
+    @AppStorage("preferredRadius") private var radius = 25
     @State private var searchText = ""
     @State private var selectedFilter = "All events"
+    @State private var showZipSheet = false
     let filterOptions = ["All events", "Art", "Sports", "Concert"]
     
     private var displayedEvents: [Event] {
@@ -48,6 +52,11 @@ struct HomeView: View {
         return (featured, thisWeek, list)
     }
 
+    private func fetchEvents(reset: Bool = true) async {
+        guard let coord = locationManager.effectiveCoordinate else { return }
+        await eventsVM.getData(latitude: coord.latitude, longitude: coord.longitude, radius: radius, reset: reset)
+    }
+
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 24) {
@@ -57,19 +66,48 @@ struct HomeView: View {
                             .font(.caption)
                             .foregroundStyle(Color("AvenueOffWhite").opacity(0.5))
 
-                        Picker("Location", selection: $selectedCity) {
-                            ForEach(City.allCases, id: \.self) { city in
-                                Text(city.rawValue).tag(city)
+                        if locationManager.isResolving {
+                            ProgressView()
+                                .tint(Color("AvenueNeonCyan"))
+                                .frame(height: 28)
+                        } else {
+                            Button {
+                                showZipSheet = true // zipcode entry
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Text(locationManager.displayName)
+                                        .fontWeight(.bold)
+                                        .font(.title3)
+                                        .foregroundStyle(.white)
+                                    Image(systemName: "chevron.down")
+                                        .font(.caption)
+                                        .foregroundStyle(Color("AvenueNeonCyan"))
+                                }
                             }
+                            .buttonStyle(.plain)
                         }
-                        .pickerStyle(.menu)
-                        .tint(Color("AvenueOffWhite"))
-                        .fontWeight(.bold)
-                        .font(.title3)
-                        .padding(.leading, -12)
                     }
                     Spacer()
                 }
+
+                HStack(spacing: 8) {
+                    ForEach([10, 25, 50, 100], id: \.self) { miles in
+                        Button {
+                            radius = miles
+                        } label: {
+                            Text("\(miles) mi")
+                                .font(.caption)
+                                .fontWeight(radius == miles ? .bold : .regular)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(radius == miles ? Color("AvenueNeonCyan") : Color("AvenueSlate"))
+                                .foregroundStyle(radius == miles ? Color("AvenueDeepNavy") : Color("AvenueOffWhite"))
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.gray)
@@ -122,7 +160,7 @@ struct HomeView: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             LazyHStack(spacing: 16) {
                                 ForEach(sections.featured) { event in
-                                    Button { } label: {
+                                    NavigationLink(value: event) {
                                         DashboardBigEventCardView(event: event)
                                             .containerRelativeFrame(.horizontal, count: 10, span: 9, spacing: 16)
                                     }
@@ -140,7 +178,7 @@ struct HomeView: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 16) {
                                 ForEach(sections.thisWeek) { event in
-                                    Button { } label: {
+                                    NavigationLink(value: event) {
                                         DashboardSmallEventCardView(event: event)
                                     }
                                     .buttonStyle(.plain)
@@ -156,13 +194,13 @@ struct HomeView: View {
                             .fontWeight(.bold)
 
                         ForEach(sections.list) { event in
-                            Button { } label: {
+                            NavigationLink(value: event) {
                                 EventListView(event: event)
                             }
                             .buttonStyle(.plain)
                             .task {
                                 if eventsVM.events.last?.id == event.id && eventsVM.hasMorePages {
-                                    await eventsVM.getData(for: selectedCity)
+                                    await fetchEvents(reset: false)
                                 }
                             }
                             Divider()
@@ -175,8 +213,10 @@ struct HomeView: View {
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 16)
                         }
-                    } else if !eventsVM.isLoading { // not loading new events
-                        Text("No events found in \(selectedCity.cityName).")
+                    } else if !eventsVM.isLoading {
+                        Text(locationManager.effectiveCoordinate == nil
+                             ? "Enable location to see nearby events."
+                             : "No events found within \(radius) miles.")
                             .font(.subheadline)
                             .foregroundStyle(Color("AvenueOffWhite").opacity(0.6))
                             .frame(maxWidth: .infinity)
@@ -189,15 +229,81 @@ struct HomeView: View {
             .animation(.easeInOut(duration: 0.25), value: searchText.isEmpty)
         }
         .background(Color("AvenueDeepNavy"))
+        .navigationDestination(for: Event.self) { event in
+            EventDetailView(event: event, savedEventsVM: savedEventsVM)
+        }
+        .sheet(isPresented: $showZipSheet) {
+            ZipCodeSheetView(locationManager: locationManager)
+        }
         .task {
-            await eventsVM.getData(for: selectedCity, reset: true)
+            locationManager.requestLocation()
+            if locationManager.effectiveCoordinate != nil {
+                await fetchEvents()
+            }
         }
-        .onChange(of: selectedCity) {
-            Task { await eventsVM.getData(for: selectedCity, reset: true) }
+        .onChange(of: locationManager.effectiveLatitude) {
+            Task { await fetchEvents() }
         }
+        .onChange(of: radius) {
+            Task { await fetchEvents() }
+        }
+        // AI USAGE: Location task and on change
     }
 }
 
-#Preview {
-    HomeView()
+private struct ZipCodeSheetView: View {
+    let locationManager: LocationManager
+    @Environment(\.dismiss) private var dismiss
+    @State private var zipInput = ""
+    @State private var isSearching = false
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 20) {
+                TextField("5-digit ZIP code", text: $zipInput)
+                    .keyboardType(.numberPad)
+                    .padding()
+                    .background(Color("AvenueSlate"))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .padding(.horizontal)
+                    .onChange(of: zipInput) {
+                        if zipInput.count > 5 {
+                            zipInput = String(zipInput.prefix(5))
+                        }
+                    }
+
+                if isSearching {
+                    ProgressView()
+                        .tint(Color("AvenueNeonCyan"))
+                }
+
+                Spacer()
+            }
+            .padding(.top, 24)
+            .navigationTitle("Search by ZIP Code")
+            .navigationBarTitleDisplayMode(.inline)
+            .background(Color("AvenueDeepNavy"))
+            .foregroundStyle(.white)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundStyle(Color("AvenueNeonCyan"))
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Search") {
+                        Task {
+                            isSearching = true
+                            await locationManager.geocodeZipCode(zipInput)
+                            isSearching = false
+                            dismiss()
+                        }
+                    }
+                    .foregroundStyle(Color("AvenueNeonCyan"))
+                    .disabled(zipInput.count != 5 || isSearching)
+                }
+            }
+        }
+        .presentationDetents([.height(220)])
+        .presentationDragIndicator(.visible)
+    }
 }

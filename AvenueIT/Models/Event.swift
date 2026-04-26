@@ -7,7 +7,11 @@
 
 import Foundation
 
-struct Event: Codable, Identifiable {
+struct Event: Codable, Identifiable, Hashable {
+    static func == (lhs: Event, rhs: Event) -> Bool { lhs.id == rhs.id }
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+    // AI Usage: how to compare and have hash for swiftdata
+
     let id: String
     let name: String
     let url: String?
@@ -15,9 +19,11 @@ struct Event: Codable, Identifiable {
     let dates: EventDates
     let classifications: [EventClassification]?
     let embedded: EventEmbedded?
-    
+    let info: String?
+    let pleaseNote: String? // new fields
+
     enum CodingKeys: String, CodingKey {
-        case id, name, url, images, dates, classifications
+        case id, name, url, images, dates, classifications, info, pleaseNote
         case embedded = "_embedded"
     }
     

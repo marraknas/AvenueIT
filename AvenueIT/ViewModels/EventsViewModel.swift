@@ -8,50 +8,6 @@
 import Foundation
 import Observation
 
-enum City: String, CaseIterable {
-    // TODO: Just hard coded cities for now, need to change to actual location
-    case boston       = "Boston, MA"
-    case newYork      = "New York, NY"
-    case losAngeles   = "Los Angeles, CA"
-    case chicago      = "Chicago, IL"
-    case houston      = "Houston, TX"
-    case miami        = "Miami, FL"
-    case seattle      = "Seattle, WA"
-    case austin       = "Austin, TX"
-    case denver       = "Denver, CO"
-    case sanFrancisco = "San Francisco, CA"
-
-    var cityName: String {
-        switch self {
-        case .boston:       return "Boston"
-        case .newYork:      return "New York"
-        case .losAngeles:   return "Los Angeles"
-        case .chicago:      return "Chicago"
-        case .houston:      return "Houston"
-        case .miami:        return "Miami"
-        case .seattle:      return "Seattle"
-        case .austin:       return "Austin"
-        case .denver:       return "Denver"
-        case .sanFrancisco: return "San Francisco"
-        }
-    }
-
-    var stateCode: String {
-        switch self {
-        case .boston:       return "MA"
-        case .newYork:      return "NY"
-        case .losAngeles:   return "CA"
-        case .chicago:      return "IL"
-        case .houston:      return "TX"
-        case .miami:        return "FL"
-        case .seattle:      return "WA"
-        case .austin:       return "TX"
-        case .denver:       return "CO"
-        case .sanFrancisco: return "CA"
-        }
-    }
-}
-
 @MainActor
 @Observable
 final class EventsViewModel {
@@ -80,13 +36,12 @@ final class EventsViewModel {
     var events: [Event] = []
     var isLoading = false
     var hasMorePages: Bool { currentPage < totalPages }
-
-    var urlString = "https://app.ticketmaster.com/discovery/v2/events.json?apikey=hKZRlOQinBHsApWAXA2jBFbrxNZkzU6T&locale=*&countryCode=US&size=50&sort=date,asc&city=Boston&stateCode=MA&page=0"
+    var urlString = ""
 
     private var currentPage = 0
     private var totalPages = 0
 
-    func getData(for city: City, reset: Bool = false) async {
+    func getData(latitude: Double, longitude: Double, radius: Int, reset: Bool = false) async {
         if reset {
             events = []
             currentPage = 0
@@ -95,7 +50,7 @@ final class EventsViewModel {
 
         guard !isLoading else { return }
 
-        urlString = "https://app.ticketmaster.com/discovery/v2/events.json?apikey=hKZRlOQinBHsApWAXA2jBFbrxNZkzU6T&locale=*&countryCode=US&size=50&sort=date,asc&city=\(city.cityName)&stateCode=\(city.stateCode)&page=\(currentPage)"
+        urlString = "https://app.ticketmaster.com/discovery/v2/events.json?apikey=hKZRlOQinBHsApWAXA2jBFbrxNZkzU6T&locale=*&countryCode=US&size=50&sort=date,asc&latlong=\(latitude),\(longitude)&radius=\(radius)&unit=miles&page=\(currentPage)"
 
         isLoading = true
         print("We are accessing the url \(urlString)")

@@ -80,17 +80,3 @@ struct DashboardBigEventCardView: View {
         .clipShape(RoundedRectangle(cornerRadius: 25))
     }
 }
-
-#Preview {
-    DashboardBigEventCardView(event: Event(
-        id: "1",
-        name: "Celtics vs. Knicks",
-        url: nil,
-        images: [],
-        dates: EventDates(start: EventDateStart(localDate: "2026-04-19", localTime: "19:30:00", dateTime: nil, dateTBD: false, dateTBA: false, timeTBA: false, noSpecificTime: false), timezone: nil, status: nil),
-        classifications: nil,
-        embedded: nil
-    ))
-    .padding()
-    .background(Color("AvenueDeepNavy"))
-}

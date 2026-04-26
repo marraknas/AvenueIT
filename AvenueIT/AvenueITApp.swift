@@ -21,14 +21,18 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 struct AvenueITApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     @AppStorage("isLoggedIn") var isLoggedIn = false
+    @State private var locationManager = LocationManager() // for identifying user location
 
     var body: some Scene {
         WindowGroup {
-            if isLoggedIn {
-                MainDashboardView()
-            } else {
-                LoginView()
+            Group {
+                if isLoggedIn {
+                    MainDashboardView()
+                } else {
+                    LoginView()
+                }
             }
+            .environment(locationManager)
         }
     }
 }
